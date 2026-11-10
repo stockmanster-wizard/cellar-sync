@@ -1452,7 +1452,7 @@ export const CellarStore = {
     return this.updateBottle(bottleId, {
       imageUrl: undefined,
       imageStoragePath: undefined,
-      visualMode: 'generated',
+      visualMode: 'card',
     });
   },
 

@@ -70,7 +70,7 @@ async function startServer() {
       const cleanBase64 = imageBase64.replace(/^data:[a-zA-Z0-9/+-]+;base64,/, '');
 
       const systemPrompt =
-        "Extract wine metadata from the label. Identify producer, wine name, vintage (use 'NV' if none), region/appellation, country, and predominant grape varietal. Output strictly according to schema.";
+        "Extract wine metadata from the label. Identify producer, wine name, vintage (use 'NV' if none), region/appellation, country, predominant grape varietal, style (must be one of: Sparkling Wine, Light-Bodied White Wine, Full-Bodied White Wine, Aromatic (Sweet) White Wine, Rosé Wine, Light-Bodied Red Wine, Medium-Bodied Red Wine, Full-Bodied Red Wine, Dessert Wine), alcohol percentage as a number if visible (e.g. 14.5), brief 1-2 sentence tasting notes summary inferred from the wine profile, and estimated drinking window formatted as 'YYYY - YYYY'. Output strictly according to schema.";
 
       const ai = getGeminiClient();
       const response = await ai.models.generateContent({
@@ -101,11 +101,15 @@ async function startServer() {
               region: { type: Type.STRING },
               country: { type: Type.STRING },
               varietal: { type: Type.STRING },
+              style: { type: Type.STRING },
+              alcoholPercent: { type: Type.NUMBER },
+              tastingNotes: { type: Type.STRING },
+              drinkingWindow: { type: Type.STRING },
             },
             required: ['producer', 'vintage', 'region', 'country', 'varietal'],
           },
           temperature: 0.1,
-          maxOutputTokens: 250,
+          maxOutputTokens: 400,
         },
       });
 

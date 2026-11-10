@@ -55,7 +55,7 @@ export async function parseWineLabelImage(
         style: parsed.style,
       });
       const inferredStyle = normalizeWineStyle(
-        parsed.style || `${normalizedVarietal} ${parsed.region || ''} ${parsed.wineName || ''}`
+        `${parsed.style || ''} ${normalizedVarietal} ${parsed.region || ''} ${parsed.wineName || ''}`
       );
 
       return {
