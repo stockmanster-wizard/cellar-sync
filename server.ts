@@ -69,9 +69,51 @@ function isValidPublicImageUrl(rawUrl: string): boolean {
   }
 }
 
+// In-memory rate limiter with periodic cleanup
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+const RATE_LIMIT_MAX_REQUESTS = 20; // 20 requests per minute per IP
+
+// Periodically evict expired rate limit entries to prevent memory growth
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, record] of rateLimitMap.entries()) {
+    if (now > record.resetTime) {
+      rateLimitMap.delete(ip);
+    }
+  }
+}, 5 * 60 * 1000).unref();
+
+function rateLimiter(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const ip = req.ip || req.socket.remoteAddress || 'unknown';
+  const now = Date.now();
+
+  let record = rateLimitMap.get(ip);
+  if (!record || now > record.resetTime) {
+    record = { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS };
+    rateLimitMap.set(ip, record);
+  } else {
+    record.count++;
+    if (record.count > RATE_LIMIT_MAX_REQUESTS) {
+      const retryAfterSeconds = Math.ceil((record.resetTime - now) / 1000);
+      res.setHeader('Retry-After', String(retryAfterSeconds));
+      return res.status(429).json({
+        error: 'Too many requests. Please wait a minute before trying again.',
+      });
+    }
+  }
+  next();
+}
+
 async function startServer() {
   const app = express();
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+
+  // Trust proxy for correct IP resolution behind load balancers / reverse proxies
+  app.set('trust proxy', 1);
+
+  // Apply rate limiter BEFORE heavy body parsing on AI/proxy endpoints
+  app.use(['/api/parse-label', '/api/search-label-candidates', '/api/proxy-label-image'], rateLimiter);
 
   // Allow parsing base64 image uploads up to 20MB
   app.use(express.json({ limit: '20mb' }));
