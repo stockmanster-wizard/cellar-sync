@@ -117,6 +117,34 @@ export const LabelSearchModal: React.FC<LabelSearchModalProps> = ({
 
   if (!isOpen) return null;
 
+  const processAndSaveLabel = async (webpBlob: Blob) => {
+    const dataUrl = await blobToDataUrl(webpBlob);
+
+    // Step 1: Save local cache to IndexedDB for instant offline viewing
+    if (bottle?.id && !bottle.id.startsWith('draft-')) {
+      await saveImageBlob(bottle.id, dataUrl);
+    }
+
+    // Step 2: Upload to Firebase Cloud Storage if authenticated, saving lightweight HTTPS URL to Firestore
+    const userId = auth.currentUser?.uid;
+    let finalImageUrl = dataUrl;
+    if (userId && bottle?.id && !bottle.id.startsWith('draft-')) {
+      try {
+        const downloadUrl = await uploadBottleLabelImage(userId, bottle.id, webpBlob);
+        finalImageUrl = downloadUrl;
+
+        // Clean up previous Firebase Storage photo if it exists and differs
+        if (bottle.imageUrl && bottle.imageUrl !== downloadUrl) {
+          deleteBottleLabelImage(bottle.imageUrl).catch(() => {});
+        }
+      } catch (storageErr) {
+        console.warn('Firebase Storage upload failed, falling back to data URL in Firestore:', storageErr);
+      }
+    }
+
+    await onSelectImage(finalImageUrl);
+  };
+
   const handleSelectCandidate = async (candidateUrl: string) => {
     if (isSaving) return;
     setSelectedCandidateUrl(candidateUrl);
@@ -136,15 +164,11 @@ export const LabelSearchModal: React.FC<LabelSearchModalProps> = ({
         throw new Error(proxyData.error || 'Failed to download candidate image.');
       }
 
-      // Step 2: Compress clean base64 via client canvas to 400x600 WebP Data URL
+      // Step 2: Compress clean base64 via client canvas to 400x600 WebP Blob
       const webpBlob = await compressLabelImage(proxyData.dataUrl);
-      const dataUrl = await blobToDataUrl(webpBlob);
 
-      // Step 3: Save directly to IndexedDB cache and update bottle immediately
-      if (bottle?.id && !bottle.id.startsWith('draft-')) {
-        await saveImageBlob(bottle.id, dataUrl);
-      }
-      await onSelectImage(dataUrl);
+      // Step 3: Process and save via shared storage/cache pipeline
+      await processAndSaveLabel(webpBlob);
       onClose();
     } catch (err: any) {
       console.error('Failed to save candidate label:', err);
@@ -165,11 +189,7 @@ export const LabelSearchModal: React.FC<LabelSearchModalProps> = ({
 
     try {
       const webpBlob = await compressLabelImage(file);
-      const dataUrl = await blobToDataUrl(webpBlob);
-      if (bottle?.id && !bottle.id.startsWith('draft-')) {
-        await saveImageBlob(bottle.id, dataUrl);
-      }
-      await onSelectImage(dataUrl);
+      await processAndSaveLabel(webpBlob);
       onClose();
     } catch (err: any) {
       console.error('Failed to save uploaded label:', err);
