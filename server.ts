@@ -40,6 +40,35 @@ function formatGeminiErrorMessage(err: any): string {
   return raw;
 }
 
+function isValidPublicImageUrl(rawUrl: string): boolean {
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+      return false;
+    }
+    const hostname = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '');
+    if (
+      hostname === 'localhost' ||
+      hostname.startsWith('127.') ||
+      hostname === '0.0.0.0' ||
+      hostname === '::1' ||
+      hostname === '::' ||
+      hostname.startsWith('10.') ||
+      hostname.startsWith('192.168.') ||
+      hostname.startsWith('169.254.') ||
+      hostname.startsWith('fc00:') ||
+      hostname.startsWith('fd00:') ||
+      hostname.startsWith('fe80:') ||
+      /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname)
+    ) {
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function startServer() {
   const app = express();
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
@@ -199,18 +228,21 @@ async function startServer() {
 
   // POST /api/proxy-label-image
   app.post('/api/proxy-label-image', async (req, res) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
     try {
       const { imageUrl } = req.body;
       if (!imageUrl) {
         return res.status(400).json({ error: 'imageUrl is required.' });
       }
 
-      // Enforce an 8-second timeout so requests never hang indefinitely
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      if (!isValidPublicImageUrl(imageUrl)) {
+        return res.status(400).json({ error: 'Invalid or restricted image URL.' });
+      }
 
       const response = await fetch(imageUrl, {
         signal: controller.signal,
+        redirect: 'error',
         headers: {
           'User-Agent':
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -218,18 +250,31 @@ async function startServer() {
         },
       });
 
-      clearTimeout(timeoutId);
-
       if (!response.ok) {
         return res.status(response.status).json({
           error: `Source image host returned HTTP ${response.status}`,
         });
       }
 
-      const contentType = response.headers.get('content-type') || 'image/jpeg';
+      const rawContentType = response.headers.get('content-type') || '';
+      const mimeMatch = rawContentType.trim().match(/^(image\/[a-z0-9.+-]+)(?:\s*;|$)/i);
+      if (!mimeMatch) {
+        return res.status(400).json({ error: 'Requested URL did not return a valid image type.' });
+      }
+      const cleanMimeType = mimeMatch[1];
+
+      const contentLength = response.headers.get('content-length');
+      if (contentLength && parseInt(contentLength, 10) > 15 * 1024 * 1024) {
+        return res.status(400).json({ error: 'Image exceeds maximum allowed size of 15MB.' });
+      }
+
       const arrayBuffer = await response.arrayBuffer();
+      if (arrayBuffer.byteLength > 15 * 1024 * 1024) {
+        return res.status(400).json({ error: 'Image exceeds maximum allowed size of 15MB.' });
+      }
+
       const base64 = Buffer.from(arrayBuffer).toString('base64');
-      const dataUrl = `data:${contentType};base64,${base64}`;
+      const dataUrl = `data:${cleanMimeType};base64,${base64}`;
 
       return res.json({ success: true, dataUrl });
     } catch (err: any) {
@@ -240,6 +285,8 @@ async function startServer() {
           ? 'Image host timed out. Please try another candidate.'
           : 'Failed to download selected label image.',
       });
+    } finally {
+      clearTimeout(timeoutId);
     }
   });
 
