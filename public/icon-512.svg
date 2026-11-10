@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    <linearGradient id="wine" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#be123c" />
+      <stop offset="100%" stop-color="#881337" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="128" fill="url(#bg)" />
+  <circle cx="256" cy="256" r="180" fill="none" stroke="#334155" stroke-width="4" stroke-dasharray="8 8" />
+  
+  <!-- Stylized Wine Bottle silhouette and cellar grid -->
+  <path d="M236 120 h40 v45 c15 15 25 35 25 65 v140 c0 12 -10 22 -22 22 h-46 c-12 0 -22 -10 -22 -22 V230 c0 -30 10 -50 25 -65 Z" fill="url(#wine)" />
+  <rect x="230" y="100" width="52" height="20" rx="4" fill="#cbd5e1" />
+  
+  <!-- Rack Slot grid lines -->
+  <line x1="170" y1="310" x2="342" y2="310" stroke="#f8fafc" stroke-width="3" stroke-linecap="round" opacity="0.8" />
+  <line x1="170" y1="350" x2="342" y2="350" stroke="#f8fafc" stroke-width="3" stroke-linecap="round" opacity="0.8" />
+  
+  <!-- Modern accent badge -->
+  <circle cx="330" cy="180" r="18" fill="#f59e0b" />
+  <polygon points="330,170 333,177 340,178 335,183 336,190 330,186 324,190 325,183 320,178 327,177" fill="#ffffff" />
+</svg>

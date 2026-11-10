@@ -1,0 +1,10 @@
+{
+  "name": "CellarSync AI",
+  "description": "Every vintage, accounted for. Visual wine cellar inventory with precision 1:1 rack mapping, instant label recognition, drinking window tracking, and tasting notes.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

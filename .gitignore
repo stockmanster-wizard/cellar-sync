@@ -1,0 +1,15 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+
+# AI Studio / Applet configs and artifacts
+firebase-applet-config.json
+!.firebase-applet-config.example.json
+.aistudio/
+.pack-server-store.json
+*.local

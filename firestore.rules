@@ -1,0 +1,136 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net (Default-Deny Catch-All)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Primitive Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_.\\-:]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'email', 'displayName', 'provider']) &&
+        data.keys().hasOnly(['uid', 'email', 'displayName', 'photoURL', 'provider', 'createdAt']) &&
+        data.uid == request.auth.uid &&
+        data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 &&
+        data.email is string && data.email.size() >= 1 && data.email.size() <= 256 &&
+        data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 128 &&
+        (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 2048)) &&
+        (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64)) &&
+        data.provider in ['google', 'password'];
+    }
+
+    function isValidBottle(data, userId) {
+      return data.keys().hasAll(['id', 'user_id', 'producer', 'vintage', 'style', 'country', 'region', 'status', 'addedAt']) &&
+        data.keys().hasOnly([
+          'id', 'user_id', 'producer', 'wineName', 'vintage', 'varietal', 'style',
+          'region', 'country', 'subRegion', 'appellation', 'drinkFrom', 'drinkUntil',
+          'drinkingWindow', 'alcoholPercent', 'slotId', 'previousSlotId', 'status', 'addedAt', 'updatedAt', 'consumedAt',
+          'rating', 'tastingNotes', 'price', 'abv', 'volume', 'visualMode', 'imageUrl', 'imageStoragePath',
+          'foodPairing', 'sommelierNote', 'vivinoRating',
+          'referenceProfile', 'cellarNotes', 'consumption'
+        ]) &&
+        data.user_id == userId &&
+        data.id is string && data.id.size() >= 1 && data.id.size() <= 128 &&
+        data.user_id is string && data.user_id.size() >= 1 && data.user_id.size() <= 128 &&
+        data.producer is string && data.producer.size() >= 1 && data.producer.size() <= 256 &&
+        (!('wineName' in data) || (data.wineName is string && data.wineName.size() <= 256)) &&
+        (data.vintage is int || (data.vintage is string && data.vintage.size() <= 32)) &&
+        (!('varietal' in data) || (data.varietal is string && data.varietal.size() <= 128)) &&
+        data.style is string && data.style.size() >= 1 && data.style.size() <= 64 &&
+        data.country is string && data.country.size() >= 0 && data.country.size() <= 128 &&
+        data.region is string && data.region.size() >= 0 && data.region.size() <= 256 &&
+        (!('alcoholPercent' in data) || ((data.alcoholPercent is int || data.alcoholPercent is float) && data.alcoholPercent >= 0 && data.alcoholPercent <= 100)) &&
+        (!('drinkingWindow' in data) || (data.drinkingWindow is string && data.drinkingWindow.size() <= 128)) &&
+        (!('slotId' in data) || (data.slotId is string && data.slotId.size() <= 128)) &&
+        (!('previousSlotId' in data) || (data.previousSlotId is string && data.previousSlotId.size() <= 128)) &&
+        data.status in ['in-cellar', 'staging', 'consumed'] &&
+        data.addedAt is string && data.addedAt.size() <= 64 &&
+        (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64)) &&
+        (!('consumedAt' in data) || (data.consumedAt is string && data.consumedAt.size() <= 64)) &&
+        (!('rating' in data) || data.rating == null || ((data.rating is int || data.rating is float) && data.rating >= 0 && data.rating <= 5)) &&
+        (!('tastingNotes' in data) || (data.tastingNotes is string && data.tastingNotes.size() <= 4000)) &&
+        (!('cellarNotes' in data) || (data.cellarNotes is string && data.cellarNotes.size() <= 2000)) &&
+        (!('referenceProfile' in data) || (data.referenceProfile is map && data.referenceProfile.keys().hasOnly(['source', 'notes']))) &&
+        (!('consumption' in data) || (data.consumption is map && data.consumption.keys().hasOnly(['date', 'rating', 'tastingNotes']))) &&
+        (!('visualMode' in data) || data.visualMode in ['photo', 'card']) &&
+        (!('imageStoragePath' in data) || (data.imageStoragePath is string && data.imageStoragePath.size() <= 512)) &&
+        (!('imageUrl' in data) || (data.imageUrl is string && data.imageUrl.size() <= 800000));
+    }
+
+    function isValidStorageUnit(data, userId) {
+      return data.keys().hasAll(['id', 'user_id', 'name', 'columns', 'rows', 'is_staging', 'sort_order']) &&
+        data.keys().hasOnly(['id', 'user_id', 'name', 'columns', 'rows', 'is_staging', 'sort_order']) &&
+        data.user_id == userId &&
+        data.id is string && data.id.size() >= 1 && data.id.size() <= 128 &&
+        data.user_id is string && data.user_id.size() >= 1 && data.user_id.size() <= 128 &&
+        data.name is string && data.name.size() >= 1 && data.name.size() <= 128 &&
+        data.columns is int && data.columns >= 1 && data.columns <= 12 &&
+        data.rows is int && data.rows >= 1 && data.rows <= 25 &&
+        data.is_staging is bool &&
+        data.sort_order is int && data.sort_order >= 0 && data.sort_order <= 1000;
+    }
+
+    // User profile document
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUserProfile(incoming());
+      allow update: if isOwner(userId) && isValidId(userId) && isValidUserProfile(incoming()) &&
+        incoming().uid == existing().uid &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'email', 'provider']);
+      allow delete: if isOwner(userId) && isValidId(userId);
+
+      // User's private bottle collection
+      match /bottles/{bottleId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(bottleId) && existing().user_id == request.auth.uid;
+        allow list: if isOwner(userId) && existing().user_id == request.auth.uid;
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(bottleId) && isValidBottle(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(userId) && isValidId(bottleId) && isValidBottle(incoming(), userId) &&
+          incoming().id == existing().id &&
+          incoming().user_id == existing().user_id &&
+          incoming().addedAt == existing().addedAt &&
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'producer', 'wineName', 'vintage', 'varietal', 'style',
+            'region', 'country', 'subRegion', 'appellation', 'drinkFrom', 'drinkUntil',
+            'drinkingWindow', 'alcoholPercent', 'slotId', 'previousSlotId', 'status', 'updatedAt', 'consumedAt',
+            'rating', 'tastingNotes', 'price', 'abv', 'volume', 'visualMode', 'imageUrl', 'imageStoragePath',
+            'foodPairing', 'sommelierNote', 'vivinoRating',
+            'referenceProfile', 'cellarNotes', 'consumption'
+          ]);
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(bottleId) && existing().user_id == request.auth.uid;
+      }
+
+      // User's storage units and racks
+      match /storageUnits/{unitId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(unitId) && existing().user_id == request.auth.uid;
+        allow list: if isOwner(userId) && existing().user_id == request.auth.uid;
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(unitId) && isValidStorageUnit(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(userId) && isValidId(unitId) && isValidStorageUnit(incoming(), userId) &&
+          incoming().id == existing().id &&
+          incoming().user_id == existing().user_id &&
+          incoming().is_staging == existing().is_staging &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['name', 'columns', 'rows', 'sort_order']);
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(unitId) && existing().user_id == request.auth.uid && existing().is_staging == false;
+      }
+    }
+  }
+}

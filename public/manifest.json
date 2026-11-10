@@ -1,0 +1,26 @@
+{
+  "id": "/",
+  "name": "CellarSync AI",
+  "short_name": "CellarSync",
+  "description": "Every vintage, accounted for. Visual wine cellar inventory with precision 1:1 rack mapping, instant label recognition, drinking window tracking, and tasting notes.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0c0a09",
+  "background_color": "#0c0a09",
+  "icons": [
+    {
+      "src": "/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

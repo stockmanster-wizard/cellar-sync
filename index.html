@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en" class="bg-stone-950 text-white">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>CellarSync AI</title>
+    <meta name="description" content="Every vintage, accounted for. Visual wine cellar inventory with precision 1:1 rack mapping, instant label recognition, drinking window tracking, and tasting notes." />
+    <meta property="og:title" content="CellarSync AI" />
+    <meta property="og:description" content="Every vintage, accounted for. Visual wine cellar inventory with precision 1:1 rack mapping, instant label recognition, drinking window tracking, and tasting notes." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#0c0a09" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="CellarSync" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/svg+xml" href="/icon-192.svg" />
+    <link rel="apple-touch-icon" href="/icon-192.svg" />
+    <!-- Google Fonts: Plus Jakarta Sans, Playfair Display & JetBrains Mono (Non-Blocking Preload) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,400;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,400;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,400;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
+  </head>
+  <body class="bg-stone-950 text-white antialiased selection:bg-rose-100 selection:text-rose-900 font-sans">
+    <div id="root" class="bg-stone-950 text-white min-h-screen">
+      <!-- Zero-dependency inline PWA cold-boot splash shell (replaced immediately when React mounts) -->
+      <div
+        style="
+          position: fixed;
+          inset: 0;
+          min-height: 100dvh;
+          width: 100%;
+          background-color: #0f172a;
+          color: #f8fafc;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          z-index: 9999;
+        "
+      >
+        <div
+          style="
+            width: 68px;
+            height: 68px;
+            border-radius: 20px;
+            background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
+            border: 1px solid rgba(251, 113, 133, 0.28);
+            box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 18px;
+          "
+        >
+          <svg
+            width="34"
+            height="34"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#fb7185"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M8 22h8" />
+            <path d="M7 10h10" />
+            <path d="M12 15v7" />
+            <path d="M12 15a5 5 0 0 0 5-5c0-2-.5-4-2-8H9c-1.5 4-2 6-2 8a5 5 0 0 0 5 5Z" />
+          </svg>
+        </div>
+        <div
+          style="
+            font-size: 19px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: #f8fafc;
+            display: flex;
+            align-items: baseline;
+            gap: 5px;
+          "
+        >
+          <span>CellarSync</span>
+          <span style="font-size: 12px; font-weight: 600; color: #fb7185; letter-spacing: 0.06em;">AI</span>
+        </div>
+        <div
+          style="
+            margin-top: 6px;
+            font-size: 11px;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: #94a3b8;
+          "
+        >
+          Opening Estate Cellar
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
