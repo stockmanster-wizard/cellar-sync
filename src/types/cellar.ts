@@ -319,7 +319,9 @@ export function normalizeWineStyle(rawStyle?: string): WineStyle {
   }
   if (
     s.includes('crisp') ||
-    s.includes('sauvignon') ||
+    s.includes('sauvignon blanc') ||
+    s.includes('fumé blanc') ||
+    s.includes('fumé') ||
     s.includes('pinot grigio') ||
     s.includes('albarino') ||
     s.includes('albariño') ||

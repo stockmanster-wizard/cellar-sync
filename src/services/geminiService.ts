@@ -68,7 +68,7 @@ export async function parseWineLabelImage(
           style: inferredStyle,
           country: parsed.country || '',
           region: parsed.region || '',
-          alcoholPercent: typeof parsed.alcoholPercent === 'number' ? parsed.alcoholPercent : undefined,
+          alcoholPercent: typeof parsed.alcoholPercent === 'number' && parsed.alcoholPercent > 0 ? parsed.alcoholPercent : undefined,
           tastingNotes: parsed.tastingNotes || '',
           drinkingWindow: parsed.drinkingWindow || '',
         },
