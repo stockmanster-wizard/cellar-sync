@@ -111,22 +111,40 @@ function generateFallbackTastingNotes(parsed: any): string {
   const reg = (parsed.region || '').toLowerCase();
   const var_ = (parsed.varietal || '').toLowerCase();
 
-  if (prod.includes('erta di radda') || name.includes('erta di radda') || reg.includes('radda')) {
+  if (prod.includes('erta di radda') || name.includes('erta di radda') || reg.includes('radda') || reg.includes('chianti') || var_.includes('sangiovese')) {
     return 'High-tone aromas of wild red cherry, tart blood orange, crushed limestone, wild rosemary, and savory Tuscan herbs, with vibrant high-altitude acidity and fine-grained, chalky mineral tannins.';
   }
-  if (var_.includes('sangiovese') || reg.includes('chianti') || reg.includes('brunello')) {
-    return 'Bright black cherry, dried violet petals, leather, and refined tobacco leaf with crisp sangiovese acidity and chalky mineral tannins.';
+  if (var_.includes('nebbiolo') || reg.includes('barolo')) {
+    return 'Tar, dried roses, red plum, licorice, and truffles with formidable tannins and soaring, elegant acidity.';
   }
-  if (var_.includes('cabernet') || var_.includes('blend')) {
+  if (var_.includes('cabernet') || var_.includes('bordeaux') || reg.includes('napa')) {
     return 'Rich blackberry, cassis, graphite, cedar, and structured tannins with a long, powerful finish.';
   }
-  if (var_.includes('pinot noir')) {
+  if (var_.includes('pinot noir') || reg.includes('burgundy') || reg.includes('willamette')) {
     return 'Fresh cranberry, wild strawberry, forest floor, and damp cedar. Silky tannins with vibrant cool-climate energy.';
   }
-  if (var_.includes('chardonnay')) {
+  if (var_.includes('chardonnay') || reg.includes('meursault') || reg.includes('chablis')) {
     return 'Toasted brioche, hazelnut, Meyer lemon curd, and crushed limestone with rich creaminess balanced by electric tension.';
   }
-  return `Expressive aromas of ${parsed.varietal || 'ripe fruit'} and regional terroir, featuring balanced acidity and a structured, lingering finish.`;
+  if (var_.includes('sauvignon blanc') || reg.includes('sancerre')) {
+    return 'Pungent lemongrass, crisp green pear, wet slate, and chalky minerality with vibrant, thirst-quenching acidity.';
+  }
+  return `Expressive aromas of ${parsed.varietal || 'ripe fruit'} and regional terroir (${parsed.region || 'classic origin'}), featuring balanced acidity and a structured, lingering finish.`;
+}
+
+function isAiPlaceholder(notes: string): boolean {
+  if (!notes) return true;
+  const lower = notes.toLowerCase().trim();
+  return (
+    lower === '' ||
+    lower === 'n/a' ||
+    lower === 'none' ||
+    lower === '-' ||
+    lower.includes('not visible') ||
+    lower.includes('not provided') ||
+    lower.includes('not on label') ||
+    lower.includes('unknown')
+  );
 }
 
 async function startServer() {
@@ -165,7 +183,7 @@ async function startServer() {
       const cleanBase64 = imageBase64.replace(/^data:[a-zA-Z0-9/+-]+;base64,/, '');
 
       const systemPrompt =
-        "Extract wine metadata from the label. Identify producer, wine name, vintage (use 'NV' if none), region/appellation, country, predominant grape varietal, style (must be one of: Sparkling Wine, Light-Bodied White Wine, Full-Bodied White Wine, Aromatic (Sweet) White Wine, Rosé Wine, Light-Bodied Red Wine, Medium-Bodied Red Wine, Full-Bodied Red Wine, Dessert Wine), alcohol percentage as a number if visible (e.g. 14.5), brief 1-2 sentence tasting notes summary inferred from the wine profile, and estimated drinking window formatted as 'YYYY - YYYY'. Output strictly according to schema.";
+        "Extract wine metadata from the label. Identify producer, wine name, vintage (use 'NV' if none), region/appellation, country, predominant grape varietal, style (must be one of: Sparkling Wine, Light-Bodied White Wine, Full-Bodied White Wine, Aromatic (Sweet) White Wine, Rosé Wine, Light-Bodied Red Wine, Medium-Bodied Red Wine, Full-Bodied Red Wine, Dessert Wine), alcohol percentage as a number if visible (e.g. 14.5), and estimated drinking window formatted as 'YYYY - YYYY'. For tastingNotes, synthesize an expert 1-2 sentence sommelier tasting profile (aromas, palate structure, and tannins) appropriate for this specific wine producer, varietal, and region. Output strictly according to schema.";
 
       const ai = getGeminiClient();
       const response = await ai.models.generateContent({
@@ -203,8 +221,8 @@ async function startServer() {
             },
             required: ['producer', 'vintage', 'region', 'country', 'varietal', 'tastingNotes'],
           },
-          temperature: 0.1,
-          maxOutputTokens: 400,
+          temperature: 0.2,
+          maxOutputTokens: 1000,
         },
       });
 
@@ -214,7 +232,7 @@ async function startServer() {
       }
 
       const parsedData = JSON.parse(outputText);
-      if (!parsedData.tastingNotes || parsedData.tastingNotes.trim() === '') {
+      if (isAiPlaceholder(parsedData.tastingNotes)) {
         parsedData.tastingNotes = generateFallbackTastingNotes(parsedData);
       }
       return res.json({ success: true, data: parsedData });
