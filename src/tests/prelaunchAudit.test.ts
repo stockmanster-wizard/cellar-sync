@@ -674,6 +674,33 @@ async function runPreLaunchAudit() {
     'CellarStore.isHydrating() exposes reactive hydration boolean state'
   );
 
+  // ---------------------------------------------------------------------------
+  // SUITE 8: Sommelier Tasting Profile & Scanning Pipeline Verification
+  // ---------------------------------------------------------------------------
+  console.log('\n8. Sommelier Tasting Profile & Scanning Pipeline Verification');
+  const { generateSommelierTastingNotes } = await import('../domain/cellar/tastingGenerator');
+  const { parseWineLabelImage } = await import('../services/geminiService');
+
+  const ertaNotes = generateSommelierTastingNotes('Sangiovese', 'Medium-Bodied Red Wine', 'Tuscany / Chianti Classico', "L'Erta di Radda Chianti Classico");
+  assert(
+    typeof ertaNotes === 'string' && ertaNotes.length > 20 && ertaNotes.includes('cherry'),
+    "generateSommelierTastingNotes generates detailed aroma and structure for L'Erta di Radda Chianti Classico"
+  );
+
+  const baroloNotes = generateSommelierTastingNotes('Nebbiolo', 'Full-Bodied Red Wine', 'Piedmont / Barolo');
+  assert(
+    typeof baroloNotes === 'string' && baroloNotes.includes('Tar') && baroloNotes.includes('roses'),
+    "generateSommelierTastingNotes generates correct profile for Barolo"
+  );
+
+  // Test scan fallback pipeline simulation
+  const scanResult = await parseWineLabelImage('data:image/jpeg;base64,dummy');
+  assert(
+    Boolean(scanResult.success && scanResult.draft && scanResult.draft.tastingNotes && scanResult.draft.tastingNotes.trim().length > 10),
+    'parseWineLabelImage guarantees non-empty tastingNotes via bulletproof client-side fallback pipeline'
+  );
+  console.log(`  LOG: Verified pipeline tasting notes output -> "${scanResult.draft?.tastingNotes}"`);
+
   console.log('\n==============================================================');
   console.log(` AUDIT COMPLETE: ${passedCount} passed, ${failedCount} failed`);
   console.log('==============================================================');
