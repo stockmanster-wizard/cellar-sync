@@ -7,6 +7,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Bottle, ParsedWineDraft, SlotId, StorageUnit, DEFAULT_STORAGE_UNITS, WINE_STYLES, WineStyle, SOMMELIER_WINE_STYLE_ORDER, formatSlotLabel, generateUnitSlots, isSlotInUnit, normalizeWineStyle, POPULAR_VARIETALS, normalizeVarietal } from '../types/cellar';
 import { SAMPLE_LABEL_PRESETS, SamplePreset } from '../data/sampleBottles';
 import { parseWineLabelImage } from '../services/geminiService';
+import { generateSommelierTastingNotes } from '../domain/cellar/tastingGenerator';
 import { compressImageForOcr } from '../utils/imageCompression';
 import { compressLabelImage, blobToDataUrl } from '../utils/imageProcessor';
 import { uploadBottleLabelImage } from '../services/imageStorage';
@@ -165,23 +166,34 @@ export const AddBottleModal: React.FC<AddBottleModalProps> = ({
         setParsingStepText('Scanning wine label...');
         setProducer(result.draft.producer || sampleData?.producer || '');
         setWineName(result.draft.wineName || '');
-        if (result.draft.varietal) {
-          setVarietal(
-            normalizeVarietal(result.draft.varietal, {
+        const resolvedVarietal = result.draft.varietal
+          ? normalizeVarietal(result.draft.varietal, {
               region: result.draft.region,
               country: result.draft.country,
               wineName: result.draft.wineName,
               producer: result.draft.producer,
               style: result.draft.style,
             })
-          );
+          : varietal;
+        if (result.draft.varietal) {
+          setVarietal(resolvedVarietal);
         }
+        const resolvedStyle = result.draft.style ? normalizeWineStyle(result.draft.style) : style;
         if (result.draft.vintage) setVintage(result.draft.vintage);
-        if (result.draft.style) setStyle(normalizeWineStyle(result.draft.style));
+        if (result.draft.style) setStyle(resolvedStyle);
         if (result.draft.country) setCountry(result.draft.country);
         if (result.draft.region) setRegion(result.draft.region);
         if (result.draft.alcoholPercent) setAlcoholPercent(String(result.draft.alcoholPercent));
-        if (result.draft.tastingNotes !== undefined) setTastingNotes(result.draft.tastingNotes);
+        const resolvedNotes =
+          result.draft.tastingNotes && result.draft.tastingNotes.trim() !== ''
+            ? result.draft.tastingNotes.trim()
+            : generateSommelierTastingNotes(
+                resolvedVarietal,
+                resolvedStyle,
+                result.draft.region || region,
+                result.draft.wineName || wineName
+              );
+        setTastingNotes(resolvedNotes);
         if (result.draft.drinkingWindow !== undefined) setDrinkingWindow(result.draft.drinkingWindow);
       } else if (!sampleData) {
         setParseError(
@@ -320,7 +332,9 @@ export const AddBottleModal: React.FC<AddBottleModalProps> = ({
 
     const vintageVal = vintage === 'NV' || isNaN(parseInt(vintage, 10)) ? 'NV' : parseInt(vintage, 10);
     const abvVal = parseFloat(alcoholPercent) || undefined;
-    const trimmedRefNotes = tastingNotes.trim();
+    const trimmedRefNotes =
+      tastingNotes.trim() ||
+      generateSommelierTastingNotes(varietal.trim(), style, region.trim(), wineName.trim());
 
     const hasPendingPhoto = Boolean(pendingLabelImage || pendingLabelBlob);
     const effectiveVisualMode: 'photo' | 'card' =

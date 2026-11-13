@@ -1,4 +1,5 @@
 import { WineStyle, Bottle, ReferenceProfile, BottleConsumption, SlotId } from "./models";
+import { generateSommelierTastingNotes } from "./tastingGenerator";
 
 export function getBottleReferenceProfile(bottle: Bottle): ReferenceProfile | null {
   if (bottle.referenceProfile && bottle.referenceProfile.notes.trim() !== '') {
@@ -8,6 +9,17 @@ export function getBottleReferenceProfile(bottle: Bottle): ReferenceProfile | nu
     return {
       source: 'Producer / AI Reference',
       notes: bottle.tastingNotes.trim(),
+    };
+  }
+  if (bottle.varietal || bottle.region || bottle.style) {
+    return {
+      source: 'Sommelier Reference',
+      notes: generateSommelierTastingNotes(
+        bottle.varietal || '',
+        bottle.style || '',
+        bottle.region || '',
+        bottle.wineName || ''
+      ),
     };
   }
   return null;

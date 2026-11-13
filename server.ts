@@ -4,6 +4,7 @@ import { GoogleGenAI, Type } from '@google/genai';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { generateSommelierTastingNotes } from './src/domain/cellar/tastingGenerator';
 
 dotenv.config();
 
@@ -106,30 +107,12 @@ function rateLimiter(req: express.Request, res: express.Response, next: express.
 }
 
 function generateFallbackTastingNotes(parsed: any): string {
-  const prod = (parsed.producer || '').toLowerCase();
-  const name = (parsed.wineName || '').toLowerCase();
-  const reg = (parsed.region || '').toLowerCase();
-  const var_ = (parsed.varietal || '').toLowerCase();
-
-  if (prod.includes('erta di radda') || name.includes('erta di radda') || reg.includes('radda') || reg.includes('chianti') || var_.includes('sangiovese')) {
-    return 'High-tone aromas of wild red cherry, tart blood orange, crushed limestone, wild rosemary, and savory Tuscan herbs, with vibrant high-altitude acidity and fine-grained, chalky mineral tannins.';
-  }
-  if (var_.includes('nebbiolo') || reg.includes('barolo')) {
-    return 'Tar, dried roses, red plum, licorice, and truffles with formidable tannins and soaring, elegant acidity.';
-  }
-  if (var_.includes('cabernet') || var_.includes('bordeaux') || reg.includes('napa')) {
-    return 'Rich blackberry, cassis, graphite, cedar, and structured tannins with a long, powerful finish.';
-  }
-  if (var_.includes('pinot noir') || reg.includes('burgundy') || reg.includes('willamette')) {
-    return 'Fresh cranberry, wild strawberry, forest floor, and damp cedar. Silky tannins with vibrant cool-climate energy.';
-  }
-  if (var_.includes('chardonnay') || reg.includes('meursault') || reg.includes('chablis')) {
-    return 'Toasted brioche, hazelnut, Meyer lemon curd, and crushed limestone with rich creaminess balanced by electric tension.';
-  }
-  if (var_.includes('sauvignon blanc') || reg.includes('sancerre')) {
-    return 'Pungent lemongrass, crisp green pear, wet slate, and chalky minerality with vibrant, thirst-quenching acidity.';
-  }
-  return `Expressive aromas of ${parsed.varietal || 'ripe fruit'} and regional terroir (${parsed.region || 'classic origin'}), featuring balanced acidity and a structured, lingering finish.`;
+  return generateSommelierTastingNotes(
+    parsed.varietal || '',
+    parsed.style || '',
+    parsed.region || '',
+    parsed.wineName || ''
+  );
 }
 
 function isAiPlaceholder(notes: string): boolean {
