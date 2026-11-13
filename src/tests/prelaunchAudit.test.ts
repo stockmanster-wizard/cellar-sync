@@ -693,11 +693,29 @@ async function runPreLaunchAudit() {
     "generateSommelierTastingNotes generates correct profile for Barolo"
   );
 
-  // Test scan fallback pipeline simulation
+  // Test scan pipeline when server returns missing/placeholder tastingNotes
+  const origFetch = globalThis.fetch;
+  globalThis.fetch = (async () => ({
+    ok: true,
+    status: 200,
+    json: async () => ({
+      success: true,
+      data: {
+        producer: "L'Erta di Radda",
+        wineName: 'Chianti Classico',
+        vintage: '2021',
+        region: 'Chianti Classico, Tuscany',
+        country: 'Italy',
+        varietal: 'Sangiovese',
+        tastingNotes: 'N/A',
+      },
+    }),
+  })) as any;
   const scanResult = await parseWineLabelImage('data:image/jpeg;base64,dummy');
+  globalThis.fetch = origFetch;
   assert(
     Boolean(scanResult.success && scanResult.draft && scanResult.draft.tastingNotes && scanResult.draft.tastingNotes.trim().length > 10),
-    'parseWineLabelImage guarantees non-empty tastingNotes via bulletproof client-side fallback pipeline'
+    'parseWineLabelImage guarantees non-empty tastingNotes via universal sommelier synthesis when server omits notes'
   );
   console.log(`  LOG: Verified pipeline tasting notes output -> "${scanResult.draft?.tastingNotes}"`);
 

@@ -20,7 +20,12 @@ export async function parseWineLabelImage(
 ): Promise<ParseLabelResult> {
   try {
     // Compress the captured image using compressImageForOcr BEFORE encoding the payload
-    const compressedBase64 = await compressImageForOcr(imageInput);
+    const compressedBase64 =
+      typeof Image !== 'undefined'
+        ? await compressImageForOcr(imageInput)
+        : typeof imageInput === 'string'
+          ? imageInput
+          : '';
 
     let resolvedMimeType = mimeType;
     const match = compressedBase64.match(/^data:([a-zA-Z0-9/+-]+);base64,/);
@@ -59,9 +64,12 @@ export async function parseWineLabelImage(
         !rawNotes ||
         rawNotes.toLowerCase() === 'n/a' ||
         rawNotes.toLowerCase() === 'none' ||
+        rawNotes.toLowerCase() === 'null' ||
         rawNotes.toLowerCase() === '-' ||
         rawNotes.toLowerCase().includes('not visible') ||
-        rawNotes.toLowerCase().includes('not provided');
+        rawNotes.toLowerCase().includes('not provided') ||
+        rawNotes.toLowerCase().includes('not on label') ||
+        rawNotes.toLowerCase().includes('impossible to provide');
 
       const resolvedNotes = isPlaceholder
         ? generateSommelierTastingNotes(normalizedVarietal, inferredStyle, parsed.region, parsed.wineName)
@@ -77,38 +85,25 @@ export async function parseWineLabelImage(
           style: inferredStyle,
           country: parsed.country || '',
           region: parsed.region || '',
-          alcoholPercent: typeof parsed.alcoholPercent === 'number' && parsed.alcoholPercent > 0 ? parsed.alcoholPercent : undefined,
+          alcoholPercent:
+            typeof parsed.alcoholPercent === 'number' && parsed.alcoholPercent > 0
+              ? parsed.alcoholPercent
+              : undefined,
           tastingNotes: resolvedNotes,
           drinkingWindow: parsed.drinkingWindow || '2025 - 2035',
         },
       };
     }
 
-    throw new Error(data?.error || `Server responded with ${res.status}`);
-  } catch (err: any) {
-    console.warn('Backend Gemini API call error, falling back to robust client-side tasting generation:', err);
-    
-    // Bulletproof client-side fallback so label scanning NEVER leaves notes blank
-    const fallbackVarietal = 'Sangiovese';
-    const fallbackStyle = 'Medium-Bodied Red Wine';
-    const fallbackRegion = 'Tuscany / Chianti Classico';
-    const fallbackNotes = generateSommelierTastingNotes(fallbackVarietal, fallbackStyle, fallbackRegion);
-
     return {
-      success: true,
-      isFallback: true,
-      draft: {
-        producer: 'Estate Bottled',
-        wineName: 'Chianti Classico',
-        varietal: fallbackVarietal,
-        vintage: '2020',
-        style: fallbackStyle,
-        country: 'Italy',
-        region: fallbackRegion,
-        alcoholPercent: 14.0,
-        tastingNotes: fallbackNotes,
-        drinkingWindow: '2024 - 2035',
-      },
+      success: false,
+      error: data?.error || `Server responded with ${res.status}`,
+    };
+  } catch (err: any) {
+    console.warn('Gemini label parse request error:', err);
+    return {
+      success: false,
+      error: err?.message || 'Unable to reach label scanning service.',
     };
   }
 }
