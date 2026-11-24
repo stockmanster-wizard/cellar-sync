@@ -54,6 +54,16 @@ export const LabelSearchModal: React.FC<LabelSearchModalProps> = ({
   const [failedUrls, setFailedUrls] = useState<Set<string>>(new Set());
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const activeAbortRef = useRef<AbortController | null>(null);
+  const cancelledRef = useRef<boolean>(false);
+
+  const handleCancelOrClose = () => {
+    cancelledRef.current = true;
+    activeAbortRef.current?.abort();
+    activeAbortRef.current = null;
+    setIsSaving(false);
+    onClose();
+  };
 
   const fetchCandidates = async (payload: {
     producer?: string;
@@ -97,6 +107,9 @@ export const LabelSearchModal: React.FC<LabelSearchModalProps> = ({
 
   useEffect(() => {
     if (isOpen && bottle) {
+      cancelledRef.current = false;
+      activeAbortRef.current?.abort();
+      activeAbortRef.current = null;
       setIsSaving(false);
       setSaveError(null);
       const cleanProd = (bottle.producer || '').trim();
@@ -147,9 +160,14 @@ export const LabelSearchModal: React.FC<LabelSearchModalProps> = ({
 
   const handleSelectCandidate = async (candidateUrl: string) => {
     if (isSaving) return;
+    cancelledRef.current = false;
     setSelectedCandidateUrl(candidateUrl);
     setIsSaving(true);
     setSaveError(null);
+
+    const controller = new AbortController();
+    activeAbortRef.current = controller;
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
 
     try {
       // Step 1: Fetch clean base64 data through the server proxy (bypasses CORS)
@@ -157,6 +175,7 @@ export const LabelSearchModal: React.FC<LabelSearchModalProps> = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageUrl: candidateUrl }),
+        signal: controller.signal,
       });
 
       const proxyData = await proxyRes.json();
@@ -164,16 +183,30 @@ export const LabelSearchModal: React.FC<LabelSearchModalProps> = ({
         throw new Error(proxyData.error || 'Failed to download candidate image.');
       }
 
+      if (cancelledRef.current) return;
+
       // Step 2: Compress clean base64 via client canvas to 400x600 WebP Blob
       const webpBlob = await compressLabelImage(proxyData.dataUrl);
+      if (cancelledRef.current) return;
 
       // Step 3: Process and save via shared storage/cache pipeline
       await processAndSaveLabel(webpBlob);
+      if (cancelledRef.current) return;
       onClose();
     } catch (err: any) {
+      if (cancelledRef.current) return;
       console.error('Failed to save candidate label:', err);
-      setSaveError(err.message || 'Could not save this label. Please choose another candidate.');
+      const isAbort = err?.name === 'AbortError';
+      setSaveError(
+        isAbort
+          ? 'Downloading that image timed out. Please try another candidate or upload a photo.'
+          : err.message || 'Could not save this label. Please choose another candidate.'
+      );
     } finally {
+      clearTimeout(timeoutId);
+      if (activeAbortRef.current === controller) {
+        activeAbortRef.current = null;
+      }
       setIsSaving(false);
     }
   };
@@ -223,9 +256,7 @@ export const LabelSearchModal: React.FC<LabelSearchModalProps> = ({
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-slate-900/65 backdrop-blur-xs transition-opacity"
-        onClick={() => {
-          if (!isSaving) onClose();
-        }}
+        onClick={handleCancelOrClose}
         aria-hidden="true"
       />
 
@@ -258,14 +289,30 @@ export const LabelSearchModal: React.FC<LabelSearchModalProps> = ({
           </div>
           <button
             type="button"
-            disabled={isSaving}
-            onClick={onClose}
+            onClick={handleCancelOrClose}
             className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors cursor-pointer shrink-0"
             aria-label="Close label search modal"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Pinned Saving Banner (always visible regardless of scroll position) */}
+        {isSaving && (
+          <div className="px-6 py-2.5 bg-rose-50 border-b border-rose-200 flex items-center justify-between gap-3 text-xs text-rose-900 shrink-0">
+            <div className="flex items-center gap-2.5">
+              <RefreshCw className="w-4 h-4 text-rose-700 animate-spin shrink-0" />
+              <span className="font-semibold">Saving label to cellar storage...</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleCancelOrClose}
+              className="text-[11px] font-semibold text-rose-700 hover:text-rose-900 underline cursor-pointer shrink-0"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
 
         {/* Body */}
         <div className="p-6 overflow-y-auto space-y-4">
@@ -294,14 +341,6 @@ export const LabelSearchModal: React.FC<LabelSearchModalProps> = ({
               Search
             </button>
           </form>
-
-          {/* Saving inline spinner banner */}
-          {isSaving && (
-            <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-900">
-              <RefreshCw className="w-4 h-4 text-rose-700 animate-spin shrink-0" />
-              <span className="font-semibold">Saving label to cellar storage...</span>
-            </div>
-          )}
 
           {/* Error banner */}
           {saveError && (
@@ -369,7 +408,11 @@ export const LabelSearchModal: React.FC<LabelSearchModalProps> = ({
                             : 'bg-slate-900/60 text-white/90 scale-95 opacity-0 group-hover:opacity-100'
                         }`}
                       >
-                        <Check className="w-3.5 h-3.5" />
+                        {isSelected && isSaving ? (
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Check className="w-3.5 h-3.5" />
+                        )}
                       </div>
                     </button>
                   );
@@ -416,8 +459,7 @@ export const LabelSearchModal: React.FC<LabelSearchModalProps> = ({
           <div className="flex items-center justify-center sm:justify-start gap-3">
             <button
               type="button"
-              disabled={isSaving}
-              onClick={onClose}
+              onClick={handleCancelOrClose}
               className="min-h-[44px] py-2 px-4 rounded-xl text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 hover:bg-neutral-100/80 text-xs font-medium transition-colors cursor-pointer"
             >
               Cancel

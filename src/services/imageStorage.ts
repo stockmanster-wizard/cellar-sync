@@ -56,14 +56,22 @@ export async function uploadBottleLabelImage(
   }
 
   const storage = resolveStorageInstance();
+  storage.maxUploadRetryTime = 6000;
+  storage.maxOperationRetryTime = 6000;
   const storagePath = `users/${userId.trim()}/labels/${bottleId.trim()}_${Date.now()}.webp`;
   const storageRef = ref(storage, storagePath);
 
   try {
-    const snapshot = await uploadBytes(storageRef, imageBlob, {
-      contentType: 'image/webp',
-    });
-    return await getDownloadURL(snapshot.ref);
+    const uploadTask = (async () => {
+      const snapshot = await uploadBytes(storageRef, imageBlob, {
+        contentType: imageBlob.type || 'image/webp',
+      });
+      return await getDownloadURL(snapshot.ref);
+    })();
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Firebase Storage upload timed out after 8s')), 8000)
+    );
+    return await Promise.race([uploadTask, timeoutPromise]);
   } catch (error) {
     const details = error instanceof Error ? error.message : String(error);
     throw new Error(`Failed to upload bottle label image to Firebase Storage: ${details}`);

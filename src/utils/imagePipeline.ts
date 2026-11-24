@@ -272,27 +272,33 @@ export async function compressLabelImage(
 
     ctx.drawImage(image, sx, sy, sWidth, sHeight, 0, 0, targetWidth, targetHeight);
 
-    const exportWebP = (quality: number): Promise<Blob> =>
+    const exportBlob = (mimeType: string, quality: number): Promise<Blob> =>
       new Promise((resolve, reject) => {
         canvas.toBlob(
           (blob) => {
             if (!blob) {
-              reject(new Error('Canvas toBlob failed to produce a WebP blob.'));
+              reject(new Error(`Canvas toBlob failed to produce a ${mimeType} blob.`));
               return;
             }
             resolve(blob);
           },
-          'image/webp',
+          mimeType,
           quality
         );
       });
 
-    // Primary export at 0.82 quality (~35 KB for 400x600)
-    let blob = await exportWebP(0.82);
-
-    // Ensure output stays under 50 KB even for high-frequency textured labels
-    if (blob.size > 50 * 1024) {
-      blob = await exportWebP(0.72);
+    // Primary export at 0.82 quality (~35 KB for 400x600), with JPEG fallback if WebP canvas export is unsupported
+    let blob: Blob;
+    try {
+      blob = await exportBlob('image/webp', 0.82);
+      if (blob.size > 50 * 1024) {
+        blob = await exportBlob('image/webp', 0.72);
+      }
+    } catch {
+      blob = await exportBlob('image/jpeg', 0.82);
+      if (blob.size > 80 * 1024) {
+        blob = await exportBlob('image/jpeg', 0.68);
+      }
     }
 
     return blob;
