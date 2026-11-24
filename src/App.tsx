@@ -680,7 +680,7 @@ export default function App() {
       />
 
       {/* Main Responsive Canvas */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-2.5 sm:px-6 py-2.5 sm:py-5 space-y-3.5 sm:space-y-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-1.5 sm:px-6 py-1.5 sm:py-5 space-y-2.5 sm:space-y-6">
         
         {/* Empty State Onboarding Hero (When First Loaded / Cleared) */}
         {isCellarEmpty && currentTab === 'map' && (
@@ -724,7 +724,7 @@ export default function App() {
 
         {/* TAB 1: CELLAR MAP VIEW (Dual 4x12 Racks + Staging Shelf) */}
         {currentTab === 'map' && (
-          <div className="space-y-3.5 sm:space-y-6">
+          <div className="space-y-2.5 sm:space-y-6">
 
             {/* Sticky Multi-Bottle Placement Banner */}
             {placementQueue && placementQueue.placedCoordinates.length < placementQueue.total && (
