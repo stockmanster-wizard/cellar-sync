@@ -331,7 +331,12 @@ export const AddBottleModal: React.FC<AddBottleModalProps> = ({
     }
 
     const vintageVal = vintage === 'NV' || isNaN(parseInt(vintage, 10)) ? 'NV' : parseInt(vintage, 10);
-    const abvVal = parseFloat(alcoholPercent) || undefined;
+    const trimmedAbv = alcoholPercent.trim();
+    const abvVal = trimmedAbv ? parseFloat(trimmedAbv) : undefined;
+    if (abvVal !== undefined && (isNaN(abvVal) || abvVal < 0 || abvVal > 100)) {
+      setParseError('Alcohol % must be between 0 and 100.');
+      return;
+    }
     const trimmedRefNotes =
       tastingNotes.trim() ||
       generateSommelierTastingNotes(varietal.trim(), style, region.trim(), wineName.trim());

@@ -107,8 +107,8 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="text-sm sm:text-base font-bold tracking-tight text-slate-900 font-sans truncate">
                 CellarSync
               </span>
-              <span className="text-[10px] font-mono font-semibold bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-md" title="Live Build Version & Label Photo Fix">
-                v1.2.7-photo-fix
+              <span className="text-[10px] font-mono font-semibold bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-md" title="Live Build Version & QA Polish">
+                v1.2.8-qa-polish
               </span>
             </div>
             <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-slate-500 whitespace-nowrap leading-none">
@@ -151,7 +151,7 @@ export const Header: React.FC<HeaderProps> = ({
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            Consumed Log (<span className="tabular-nums">{consumedCount}</span>)
+            Consumed (<span className="tabular-nums">{consumedCount}</span>)
           </button>
           <button
             onClick={() => onSelectTab('audit')}
@@ -161,7 +161,7 @@ export const Header: React.FC<HeaderProps> = ({
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            Reconcile Audit
+            Audit
           </button>
         </nav>
 

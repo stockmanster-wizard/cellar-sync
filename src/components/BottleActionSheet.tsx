@@ -365,12 +365,14 @@ export const BottleActionSheet: React.FC<BottleActionSheetProps> = ({
                     {bottle.cellarNotes}
                   </div>
                 ) : (
-                  <div
+                  <button
+                    type="button"
                     onClick={() => setIsEditingCellarNotes(true)}
-                    className="text-xs text-slate-400 bg-slate-50/60 hover:bg-slate-50 p-3 rounded-xl border border-dashed border-slate-200 cursor-pointer transition-colors"
+                    className="w-full text-left text-xs text-slate-500 bg-slate-50/70 hover:bg-slate-100/80 p-3 rounded-xl border border-dashed border-slate-200 cursor-pointer transition-colors flex items-center justify-between gap-2"
                   >
-                    e.g., Gift from Jason, hold until 2028...
-                  </div>
+                    <span className="text-slate-400">e.g., Gift from Jason, hold until 2028...</span>
+                    <span className="text-[11px] font-semibold text-rose-800 shrink-0">Tap to add</span>
+                  </button>
                 )}
               </div>
             </>

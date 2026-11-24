@@ -3,22 +3,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, lazy, Suspense } from 'react';
 import { useCellarStore } from './services/cellarStore';
 import { Bottle, SlotId, WineStyle, WINE_STYLES, SOMMELIER_WINE_STYLE_ORDER, formatSlotLabel, normalizeWineStyle, isSlotInUnit, getUnitSlotPrefix, parseSlotCoordinates, getBottleMaturity, DrinkingWindowMaturityStatus } from './types/cellar';
 import { Header } from './components/Header';
 import { RackGrid } from './components/RackGrid';
 import { StagingShelf } from './components/StagingShelf';
 import { BottleActionSheet } from './components/BottleActionSheet';
-import { LogConsumptionModal } from './components/LogConsumptionModal';
-import { AddBottleModal } from './components/AddBottleModal';
-import { MoveBottleModal } from './components/MoveBottleModal';
-import { EditBottleModal } from './components/EditBottleModal';
 import { InventoryView } from './components/InventoryView';
 import { HistoryView } from './components/HistoryView';
-import { AuditModal } from './components/AuditModal';
-import { StorageManagerModal } from './components/StorageManagerModal';
 import { SplashScreen } from './components/SplashScreen';
+
+const LogConsumptionModal = lazy(() => import('./components/LogConsumptionModal').then((m) => ({ default: m.LogConsumptionModal })));
+const AddBottleModal = lazy(() => import('./components/AddBottleModal').then((m) => ({ default: m.AddBottleModal })));
+const MoveBottleModal = lazy(() => import('./components/MoveBottleModal').then((m) => ({ default: m.MoveBottleModal })));
+const EditBottleModal = lazy(() => import('./components/EditBottleModal').then((m) => ({ default: m.EditBottleModal })));
+const AuditModal = lazy(() => import('./components/AuditModal').then((m) => ({ default: m.AuditModal })));
+const StorageManagerModal = lazy(() => import('./components/StorageManagerModal').then((m) => ({ default: m.StorageManagerModal })));
 import { CellarHeaderShell } from './components/cellar/CellarHeaderShell';
 import { StorageSegmentedTabs } from './components/cellar/StorageSegmentedTabs';
 import { SlideDownLegendDrawer } from './components/cellar/SlideDownLegendDrawer';
@@ -979,7 +980,7 @@ export default function App() {
             }`}
           >
             <History className="w-4 h-4 shrink-0" />
-            <span className="text-[10px] leading-tight tracking-tight">Drunk ({consumedBottles.length})</span>
+            <span className="text-[10px] leading-tight tracking-tight">Consumed ({consumedBottles.length})</span>
           </button>
 
           <button
@@ -989,7 +990,7 @@ export default function App() {
             }`}
           >
             <CheckCheck className="w-4 h-4 shrink-0" />
-            <span className="text-[10px] leading-tight tracking-tight">Audit Drift</span>
+            <span className="text-[10px] leading-tight tracking-tight">Audit</span>
           </button>
         </div>
       </nav>
@@ -1013,6 +1014,7 @@ export default function App() {
       )}
 
       {/* MODAL: Add Bottle Flow (Camera / Upload / Sample Labels / Gemini AI Parse) */}
+      <Suspense fallback={null}>
       {isAddModalOpen && (
         <AddBottleModal
           key={`add-modal-${initialSlotForAdd || 'new'}`}
@@ -1149,6 +1151,7 @@ export default function App() {
         }}
         initialEditingUnitId={editingStorageUnitId}
       />
+      </Suspense>
     </div>
   );
 }
