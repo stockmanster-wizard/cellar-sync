@@ -151,6 +151,33 @@ export function normalizeVarietal(val?: string | null, context?: VarietalContext
   const trimmed = (val || '').trim();
   const lower = trimmed.toLowerCase();
 
+  const GENERIC_PLACEHOLDERS = new Set([
+    '',
+    'blend',
+    'red blend',
+    'white blend',
+    'red wine',
+    'white wine',
+    'rosé wine',
+    'rose wine',
+    'sparkling wine',
+    'unknown',
+    'n/a',
+    'none',
+    'null',
+  ]);
+
+  // 0. Explicit multi-grape blends (e.g. "Sauvignon Blanc / Sémillon", "Merlot, Cabernet Sauvignon")
+  // Check before single-grape .includes() rules so secondary grapes are never stripped.
+  if (trimmed && (trimmed.includes('/') || trimmed.includes('&') || trimmed.includes(','))) {
+    // Preserve canonical GSM Blend / Syrah / Shiraz / Grenache / Garnacha / Pinot Grigio / Gris formatting if exact match,
+    // otherwise return the user's or label's explicit multi-grape blend intact.
+    if (lower === 'syrah / shiraz') return 'Syrah / Shiraz';
+    if (lower === 'grenache / garnacha') return 'Grenache / Garnacha';
+    if (lower === 'pinot grigio / gris') return 'Pinot Grigio / Gris';
+    return trimmed;
+  }
+
   // 1. Explicit single grape check (take priority if clearly stated, with legal protection guards)
   if (lower.includes('melon de bourgogne') || lower === 'melon' || lower.includes('melon grape')) return 'Melon de Bourgogne';
   if (lower.includes('pinot noir') || lower.includes('spätburgunder')) return 'Pinot Noir';
@@ -183,6 +210,12 @@ export function normalizeVarietal(val?: string | null, context?: VarietalContext
   if (lower.includes('viognier')) return 'Viognier';
   if (lower.includes('glera') || lower.includes('prosecco')) return 'Glera (Prosecco)';
   if (lower.includes('corvina') || lower.includes('rondinella')) return 'Corvina Blend';
+
+  // If the caller provided a specific, non-generic varietal (e.g. "Sémillon", "Petit Verdot", "Carménère"),
+  // preserve it rather than overwriting with Old World appellation defaults.
+  if (trimmed && !GENERIC_PLACEHOLDERS.has(lower)) {
+    return trimmed;
+  }
 
   // 2. OLD WORLD APPELLATION VARIETAL RESOLUTION (STRICT)
   // Protected European geographical indications map directly to legally mandated dominant grape variety:

@@ -588,7 +588,10 @@ async function syncBottleToFirestore(bottle: Bottle) {
     await setDoc(doc(db, 'users', bottle.user_id, 'bottles', bottle.id), cleanBottle);
   } catch (e) {
     pendingBottleSyncs.set(bottle.id, bottle);
-    handleFirestoreError(e, OperationType.WRITE, path);
+    const info = handleFirestoreError(e, OperationType.WRITE, path);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('cellarsync_sync_error', { detail: info }));
+    }
   }
 }
 
@@ -1414,13 +1417,16 @@ export const CellarStore = {
         ...(resolvedVisualMode !== undefined ? { visualMode: resolvedVisualMode } : {}),
         varietal:
           patch.varietal !== undefined
-            ? normalizeVarietal(patch.varietal, {
-                region: patch.region || target.region,
-                country: patch.country || target.country,
-                wineName: patch.wineName || target.wineName,
-                producer: patch.producer || target.producer,
-                style: patch.style || target.style,
-              })
+            ? (() => {
+                const trimmed = patch.varietal.trim();
+                const effStyle = patch.style || target.style;
+                const isWhiteOrSparkling =
+                  effStyle.includes('White') || effStyle.includes('Sparkling') || effStyle.includes('Dessert');
+                if (!trimmed || trimmed.toLowerCase() === 'blend') {
+                  return isWhiteOrSparkling ? 'White Blend' : 'Red Blend';
+                }
+                return trimmed;
+              })()
             : target.varietal,
         status: patch.status || (patch.slotId ? (getZoneFromSlotId(patch.slotId) === 'Staging Shelf' ? 'staging' : 'in-cellar') : target.status),
       },

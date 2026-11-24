@@ -36,7 +36,11 @@ export const EditBottleModal: React.FC<EditBottleModalProps> = ({
 
   const [producer, setProducer] = useState(bottle.producer);
   const [wineName, setWineName] = useState(bottle.wineName || '');
-  const [varietal, setVarietal] = useState(bottle.varietal || 'Red Blend');
+  const defaultVarietalFallback =
+    bottle.style?.includes('White') || bottle.style?.includes('Sparkling') || bottle.style?.includes('Dessert')
+      ? 'White Blend'
+      : 'Red Blend';
+  const [varietal, setVarietal] = useState(bottle.varietal || defaultVarietalFallback);
   const [vintage, setVintage] = useState<string>(String(bottle.vintage));
   const [style, setStyle] = useState<WineStyle>(bottle.style);
   const [country, setCountry] = useState(bottle.country);
@@ -68,10 +72,18 @@ export const EditBottleModal: React.FC<EditBottleModalProps> = ({
       setFormError('Producer name is required.');
       return;
     }
+    if (!varietal.trim()) {
+      setFormError('Varietal / Grape Variety is required.');
+      return;
+    }
 
     const vintageVal =
       vintage === 'NV' || isNaN(parseInt(vintage, 10)) ? 'NV' : parseInt(vintage, 10);
     const abvVal = alcoholPercent ? parseFloat(alcoholPercent) : undefined;
+    if (abvVal !== undefined && (isNaN(abvVal) || abvVal < 0 || abvVal > 100)) {
+      setFormError('Alcohol % must be between 0 and 100.');
+      return;
+    }
 
     const updatedRefProfile = referenceNotes.trim()
       ? {

@@ -458,6 +458,45 @@ async function runPreLaunchAudit() {
   });
   assert(hermitage === 'Syrah', `Hermitage maps to 'Syrah' (got '${hermitage}')`);
 
+  // Manual varietal preservation & multi-grape blend regression tests
+  const bordeauxBlendExplicit = normalizeVarietal('Sauvignon Blanc / Sémillon', {
+    region: 'Graves, Bordeaux',
+    country: 'France',
+  });
+  assert(
+    bordeauxBlendExplicit === 'Sauvignon Blanc / Sémillon',
+    `normalizeVarietal preserves explicit multi-grape blend 'Sauvignon Blanc / Sémillon' (got '${bordeauxBlendExplicit}')`
+  );
+
+  const semillonExplicit = normalizeVarietal('Sémillon', {
+    producer: 'Vignobles Siozard',
+    wineName: 'Ipsum',
+    region: 'Bordeaux',
+    country: 'France',
+  });
+  assert(
+    semillonExplicit === 'Sémillon',
+    `normalizeVarietal preserves specific grape 'Sémillon' in Bordeaux instead of overwriting (got '${semillonExplicit}')`
+  );
+
+  const siozardBottle = CellarStore.addBottle({
+    producer: 'Vignobles Siozard',
+    wineName: 'Ipsum',
+    varietal: 'Bordeaux Blend',
+    vintage: 2020,
+    style: 'Full-Bodied Red Wine',
+    country: 'France',
+    region: 'Bordeaux',
+    slotId: undefined,
+  });
+  const editedSemillon = CellarStore.updateBottle(siozardBottle.id, { varietal: 'Merlot / Cabernet Sauvignon' });
+  assert(
+    editedSemillon?.varietal === 'Merlot / Cabernet Sauvignon' &&
+      CellarStore.getBottleById(siozardBottle.id)?.varietal === 'Merlot / Cabernet Sauvignon',
+    `updateBottle persists manual varietal edit 'Merlot / Cabernet Sauvignon' on Old World Bordeaux bottle (got '${editedSemillon?.varietal}')`
+  );
+  CellarStore.deleteBottle(siozardBottle.id);
+
   const { SOMMELIER_WINE_STYLE_ORDER, STANDARD_VINTAGES, OLD_WORLD_APPELLATION_RULES } = await import('../types/cellar');
   assert(
     Array.isArray(OLD_WORLD_APPELLATION_RULES) && OLD_WORLD_APPELLATION_RULES.length >= 10,

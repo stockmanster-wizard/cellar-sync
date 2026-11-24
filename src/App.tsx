@@ -131,6 +131,14 @@ export default function App() {
     }, duration);
   };
 
+  useEffect(() => {
+    const handleSyncError = () => {
+      showToast('Saved locally, but cloud sync failed. Check connection or photo size.');
+    };
+    window.addEventListener('cellarsync_sync_error', handleSyncError);
+    return () => window.removeEventListener('cellarsync_sync_error', handleSyncError);
+  }, []);
+
   // Sequential Multi-Bottle Placement Queue state
   const [placementQueue, setPlacementQueue] = useState<PlacementQueue | null>(null);
 
@@ -516,7 +524,11 @@ export default function App() {
   };
 
   const handleEditConfirm = (bottleId: string, updates: Partial<Bottle>) => {
-    updateBottle(bottleId, updates);
+    const updated = updateBottle(bottleId, updates);
+    if (!updated) {
+      showToast('Could not save bottle changes — please try again');
+      return;
+    }
     showToast('Bottle details updated successfully');
   };
 
@@ -524,7 +536,11 @@ export default function App() {
     const updated = updateBottle(bottleId, {
       cellarNotes: cellarNotes.trim() || undefined,
     });
-    if (updated && inspectingBottle && inspectingBottle.id === bottleId) {
+    if (!updated) {
+      showToast('Could not save cellar notes — please try again');
+      return;
+    }
+    if (inspectingBottle && inspectingBottle.id === bottleId) {
       setInspectingBottle(updated);
     }
     showToast('Cellar notes saved');
@@ -539,24 +555,36 @@ export default function App() {
       rating: review.rating ?? undefined,
       tastingNotes: review.tastingNotes || undefined,
     });
-    if (updated && inspectingBottle && inspectingBottle.id === bottleId) {
+    if (!updated) {
+      showToast('Could not update tasting review — please try again');
+      return;
+    }
+    if (inspectingBottle && inspectingBottle.id === bottleId) {
       setInspectingBottle(updated);
     }
     showToast('Tasting review updated');
   };
 
   const handleUpdateBottlePhoto = (bottleId: string, newImageUrl: string) => {
-    updateBottle(bottleId, { visualMode: 'photo', imageUrl: newImageUrl });
+    const updated = updateBottle(bottleId, { visualMode: 'photo', imageUrl: newImageUrl });
+    if (!updated) {
+      showToast('Could not update label photo — please try again');
+      return;
+    }
     if (inspectingBottle && inspectingBottle.id === bottleId) {
-      setInspectingBottle({ ...inspectingBottle, visualMode: 'photo', imageUrl: newImageUrl });
+      setInspectingBottle(updated);
     }
     showToast('Wine label photo updated');
   };
 
   const handleRemoveBottlePhoto = (bottleId: string) => {
-    updateBottle(bottleId, { visualMode: 'card', imageUrl: undefined });
+    const updated = updateBottle(bottleId, { visualMode: 'card', imageUrl: undefined });
+    if (!updated) {
+      showToast('Could not remove label photo — please try again');
+      return;
+    }
     if (inspectingBottle && inspectingBottle.id === bottleId) {
-      setInspectingBottle({ ...inspectingBottle, visualMode: 'card', imageUrl: undefined });
+      setInspectingBottle(updated);
     }
     showToast('Reverted to procedural label card');
   };
