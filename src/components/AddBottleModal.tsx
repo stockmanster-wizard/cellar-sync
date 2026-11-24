@@ -4,20 +4,18 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Bottle, ParsedWineDraft, SlotId, StorageUnit, DEFAULT_STORAGE_UNITS, WINE_STYLES, WineStyle, SOMMELIER_WINE_STYLE_ORDER, formatSlotLabel, generateUnitSlots, isSlotInUnit, normalizeWineStyle, POPULAR_VARIETALS, normalizeVarietal } from '../types/cellar';
-import { SAMPLE_LABEL_PRESETS, SamplePreset } from '../data/sampleBottles';
+import { Bottle, SlotId, StorageUnit, DEFAULT_STORAGE_UNITS, WINE_STYLES, WineStyle, SOMMELIER_WINE_STYLE_ORDER, formatSlotLabel, generateUnitSlots, isSlotInUnit, normalizeWineStyle, POPULAR_VARIETALS, normalizeVarietal } from '../types/cellar';
 import { parseWineLabelImage } from '../services/geminiService';
 import { generateSommelierTastingNotes } from '../domain/cellar/tastingGenerator';
 import { compressImageForOcr } from '../utils/imageCompression';
 import { compressLabelImage, blobToDataUrl } from '../utils/imageProcessor';
 import { uploadBottleLabelImage } from '../services/imageStorage';
 import { auth } from '../services/firebase';
-import { WineLabelBadge } from './WineLabelBadge';
 import { WineCardPreview } from './ui/WineCardPreview';
 import { buildWineEstateCardProps } from './ui/WineEstateCard';
 import { FormField } from './ui/FormField';
 import { VintageSelect } from './VintageSelect';
-import { Camera, Upload, Sparkles, X, Check, AlertCircle, RefreshCw, Wine, ChevronRight, Plus, Minus } from 'lucide-react';
+import { Camera, Upload, X, Check, AlertCircle, RefreshCw, Wine, ChevronRight, Plus, Minus } from 'lucide-react';
 
 interface AddBottleModalProps {
   isOpen: boolean;
@@ -41,7 +39,7 @@ export const AddBottleModal: React.FC<AddBottleModalProps> = ({
 }) => {
   const units = storageUnits && storageUnits.length > 0 ? storageUnits : DEFAULT_STORAGE_UNITS;
   const [step, setStep] = useState<'input' | 'review' | 'slot'>('input');
-  const [entryMode, setEntryMode] = useState<'scan' | 'preset' | 'manual'>('scan');
+  const [entryMode, setEntryMode] = useState<'scan' | 'manual'>('scan');
   const [isParsing, setIsParsing] = useState(false);
   const [parsingStepText, setParsingStepText] = useState('Scanning wine label...');
   const [parseError, setParseError] = useState<string | null>(null);
@@ -140,31 +138,18 @@ export const AddBottleModal: React.FC<AddBottleModalProps> = ({
   if (!isOpen) return null;
 
   // Process image in memory for Gemini extraction
-  const handleProcessImage = async (imageForOcr: string, sampleData?: ParsedWineDraft, mimeType?: string) => {
+  const handleProcessImage = async (imageForOcr: string, mimeType?: string) => {
     setIsParsing(true);
     setParseError(null);
     setStep('review');
     setParsingStepText('Scanning wine label...');
-
-    // If a sample preset was clicked, populate its curated baseline immediately
-    if (sampleData) {
-      setProducer(sampleData.producer);
-      setWineName(sampleData.wineName || '');
-      setVintage(sampleData.vintage);
-      setStyle(sampleData.style);
-      setCountry(sampleData.country);
-      setRegion(sampleData.region);
-      setAlcoholPercent(sampleData.alcoholPercent ? String(sampleData.alcoholPercent) : '');
-      setTastingNotes(sampleData.tastingNotes || '');
-      setDrinkingWindow(sampleData.drinkingWindow || '');
-    }
 
     try {
       // Execute multi-modal Gemini label extraction (<2s on compressed image)
       const result = await parseWineLabelImage(imageForOcr, mimeType);
       if (result.success && result.draft) {
         setParsingStepText('Scanning wine label...');
-        setProducer(result.draft.producer || sampleData?.producer || '');
+        setProducer(result.draft.producer || '');
         setWineName(result.draft.wineName || '');
         const resolvedVarietal = result.draft.varietal
           ? normalizeVarietal(result.draft.varietal, {
@@ -195,15 +180,13 @@ export const AddBottleModal: React.FC<AddBottleModalProps> = ({
               );
         setTastingNotes(resolvedNotes);
         if (result.draft.drinkingWindow !== undefined) setDrinkingWindow(result.draft.drinkingWindow);
-      } else if (!sampleData) {
+      } else {
         setParseError(
           result.error || "Couldn't read all details automatically. Please confirm the draft fields."
         );
       }
     } catch (err: any) {
-      if (!sampleData) {
-        setParseError(err.message || 'Label scan timed out. Please enter details manually.');
-      }
+      setParseError(err.message || 'Label scan timed out. Please enter details manually.');
     } finally {
       setIsParsing(false);
     }
@@ -236,7 +219,7 @@ export const AddBottleModal: React.FC<AddBottleModalProps> = ({
     try {
       const compressedDataUrl = await compressImageForOcr(file);
       setPendingLabelImage(compressedDataUrl);
-      await handleProcessImage(compressedDataUrl, undefined, 'image/jpeg');
+      await handleProcessImage(compressedDataUrl, 'image/jpeg');
     } catch (err: any) {
       setIsParsing(false);
       setParseError(err.message || 'Failed to process image for scanning.');
@@ -259,40 +242,6 @@ export const AddBottleModal: React.FC<AddBottleModalProps> = ({
     };
     reader.readAsDataURL(file);
     e.target.value = '';
-  };
-
-  // Preset sample test labels
-  const handlePresetClick = async (preset: SamplePreset) => {
-    setIsParsing(false);
-    setParseError(null);
-    setPendingLabelImage(null);
-    setPendingLabelBlob(null);
-    setVisualMode('card');
-    setEntryMode('preset');
-    setStep('review');
-
-    // Pre-fill fields for immediate response
-    setProducer(preset.draftData.producer);
-    setWineName(preset.draftData.wineName || '');
-    setVarietal(
-      preset.draftData.varietal
-        ? normalizeVarietal(preset.draftData.varietal, {
-            region: preset.draftData.region,
-            country: preset.draftData.country,
-            wineName: preset.draftData.wineName,
-            producer: preset.draftData.producer,
-            style: preset.draftData.style,
-          })
-        : 'GSM Blend'
-    );
-    setVintage(preset.draftData.vintage);
-    setStyle(preset.draftData.style);
-    setCountry(preset.draftData.country);
-    setRegion(preset.draftData.region);
-    setAlcoholPercent(preset.draftData.alcoholPercent ? String(preset.draftData.alcoholPercent) : '14.0');
-    setTastingNotes(preset.draftData.tastingNotes || '');
-    setCellarNotes('');
-    setDrinkingWindow(preset.draftData.drinkingWindow || '');
   };
 
   const resetForm = () => {
@@ -454,7 +403,7 @@ export const AddBottleModal: React.FC<AddBottleModalProps> = ({
                 {step === 'slot' && 'Assign Storage Slot'}
               </h2>
               <span className="text-xs text-slate-400">
-                {step === 'input' && 'Scan label for text extraction or choose a sample'}
+                {step === 'input' && 'Scan label for text extraction or enter manually'}
                 {step === 'review' && 'Label Preview'}
                 {step === 'slot' && (selectedSlot ? formatSlotLabel(selectedSlot) : 'Select a slot')}
               </span>
@@ -515,52 +464,6 @@ export const AddBottleModal: React.FC<AddBottleModalProps> = ({
                   accept="image/*"
                   className="hidden"
                 />
-              </div>
-
-              {/* Sample Bottle Label Tray */}
-              <div className="border-t border-slate-100 pt-5">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900 uppercase tracking-wider">
-                    <Sparkles className="w-3.5 h-3.5 text-rose-700" />
-                    <span>Instant Sample Estates (1-Tap Test)</span>
-                  </div>
-                  <span className="text-[11px] text-slate-400">Old World &amp; New World presets</span>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                  {SAMPLE_LABEL_PRESETS.map((preset) => (
-                    <button
-                      key={preset.id}
-                      type="button"
-                      onClick={() => handlePresetClick(preset)}
-                      className="group flex flex-col items-center p-2.5 rounded-2xl border border-slate-200 hover:border-slate-900 hover:shadow-md transition-all text-left bg-stone-50/60"
-                    >
-                      <div className="mb-2">
-                        <WineLabelBadge
-                          bottle={{
-                            producer: preset.draftData.producer,
-                            wineName: preset.draftData.wineName,
-                            varietal: preset.draftData.varietal,
-                            vintage:
-                              preset.draftData.vintage === 'NV' || isNaN(parseInt(preset.draftData.vintage, 10))
-                                ? 'NV'
-                                : parseInt(preset.draftData.vintage, 10),
-                            style: preset.draftData.style,
-                            country: preset.draftData.country,
-                            region: preset.draftData.region,
-                          }}
-                          size="md"
-                        />
-                      </div>
-                      <div className="w-full text-xs font-bold text-slate-900 leading-tight truncate text-center">
-                        {preset.producer}
-                      </div>
-                      <div className="w-full text-[10px] text-slate-500 truncate mt-0.5 text-center">
-                        {preset.region}
-                      </div>
-                    </button>
-                  ))}
-                </div>
               </div>
 
               {/* Manual Entry Fallback */}

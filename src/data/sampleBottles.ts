@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Bottle, ParsedWineDraft } from '../types/cellar';
+import { Bottle } from '../types/cellar';
 
 // Exact generated image asset paths from generate_image
 export const SAMPLE_IMAGES = {
@@ -12,108 +12,6 @@ export const SAMPLE_IMAGES = {
   pinotNoir: '/src/assets/images/label_pinot_noir_1792259552728.jpg',
   meursault: '/src/assets/images/label_meursault_chardonnay_1792259551868.jpg',
 };
-
-export interface SamplePreset {
-  id: string;
-  title: string;
-  vintage: string;
-  producer: string;
-  style: string;
-  region: string;
-  imageUrl: string;
-  draftData: ParsedWineDraft;
-}
-
-export const SAMPLE_LABEL_PRESETS: SamplePreset[] = [
-  {
-    id: 'preset-chianti',
-    title: 'Chianti Classico Gran Selezione',
-    vintage: '2018',
-    producer: 'Cantina di Fèlsina',
-    style: 'Medium-Bodied Red Wine',
-    region: 'Tuscany, Italy',
-    imageUrl: SAMPLE_IMAGES.chianti,
-    draftData: {
-      producer: 'Cantina di Fèlsina',
-      wineName: 'Chianti Classico Gran Selezione',
-      varietal: 'Sangiovese',
-      vintage: '2018',
-      style: 'Medium-Bodied Red Wine',
-      country: 'Italy',
-      region: 'Tuscany / Chianti Classico DOCG',
-      alcoholPercent: 14.5,
-      tastingNotes: 'Bright black cherry, dried violet petals, leather, and refined tobacco leaf with crisp sangiovese acidity and chalky mineral tannins.',
-      drinkingWindow: '2023 - 2035',
-      imageUrl: SAMPLE_IMAGES.chianti,
-    },
-  },
-  {
-    id: 'preset-rhone-gsm',
-    title: 'Châteauneuf-du-Pape Cuvée Papale',
-    vintage: '2021',
-    producer: 'Domaine du Vieux Château',
-    style: 'Medium-Bodied Red Wine',
-    region: 'Southern Rhône, France',
-    imageUrl: SAMPLE_IMAGES.rhoneGsm,
-    draftData: {
-      producer: 'Domaine du Vieux Château',
-      wineName: 'Cuvée Papale Châteauneuf-du-Pape (GSM)',
-      varietal: 'GSM Blend',
-      vintage: '2021',
-      style: 'Medium-Bodied Red Wine',
-      country: 'France',
-      region: 'Southern Rhône Valley',
-      alcoholPercent: 14.5,
-      tastingNotes: 'Ripe dark plums, garrigue herbs, lavender, cracked black peppercorn, and licorice over a velvety, structured body.',
-      drinkingWindow: '2024 - 2038',
-      imageUrl: SAMPLE_IMAGES.rhoneGsm,
-    },
-  },
-  {
-    id: 'preset-pinot-noir',
-    title: 'Willamette Valley Pinot Noir',
-    vintage: '2021',
-    producer: 'Terroir Cellars',
-    style: 'Light-Bodied Red Wine',
-    region: 'Willamette Valley, Oregon',
-    imageUrl: SAMPLE_IMAGES.pinotNoir,
-    draftData: {
-      producer: 'Terroir Cellars',
-      wineName: 'Willamette Valley Pinot Noir Reserve',
-      varietal: 'Pinot Noir',
-      vintage: '2021',
-      style: 'Light-Bodied Red Wine',
-      country: 'USA',
-      region: 'Oregon / Willamette Valley',
-      alcoholPercent: 13.5,
-      tastingNotes: 'Fresh cranberry, wild strawberry, forest floor, and damp cedar. Silky tannins with vibrant cool-climate energy.',
-      drinkingWindow: '2023 - 2031',
-      imageUrl: SAMPLE_IMAGES.pinotNoir,
-    },
-  },
-  {
-    id: 'preset-meursault',
-    title: 'Meursault Premier Cru Les Charmes',
-    vintage: '2020',
-    producer: 'Domaine Jean-Claude Moreau & Fils',
-    style: 'Full-Bodied White Wine',
-    region: 'Burgundy, France',
-    imageUrl: SAMPLE_IMAGES.meursault,
-    draftData: {
-      producer: 'Domaine Jean-Claude Moreau & Fils',
-      wineName: 'Meursault Premier Cru Les Charmes',
-      varietal: 'Chardonnay',
-      vintage: '2020',
-      style: 'Full-Bodied White Wine',
-      country: 'France',
-      region: 'Côte de Beaune / Burgundy',
-      alcoholPercent: 13.0,
-      tastingNotes: 'Toasted brioche, hazelnut, Meyer lemon curd, and crushed limestone with rich creaminess balanced by electric tension.',
-      drinkingWindow: '2024 - 2034',
-      imageUrl: SAMPLE_IMAGES.meursault,
-    },
-  },
-];
 
 /**
  * Curated seed cellar for user when they choose "Load Curated Sample Cellar".
